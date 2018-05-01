@@ -46,7 +46,39 @@ DJ202.init = function () {
     midi.sendSysexMsg([0xF0, 0x00, 0x20, 0x7F, 0x00, 0xF7], 6) //request initial state
     midi.sendSysexMsg([0xF0, 0x00, 0x20, 0x7F, 0x01, 0xF7], 6) //unlock pad layers
 
+    engine.makeConnection('[Channel1]', 'beat_active', DJ202.beat);
+
 };
+
+// FIXME: reset all slices upon song-load/seek
+DJ202.slices = [];
+
+DJ202.activePad = 1;
+
+DJ202.beat = function (value, group, control) {
+    if (!value) {
+        midi.sendShortMsg(0x94, DJ202.activePad, 0);
+        return
+    }
+    midi.sendShortMsg(0x94, DJ202.activePad, 0);
+    DJ202.activePad = DJ202.activePad  % 8 + 1;
+    midi.sendShortMsg(0x94, DJ202.activePad, 0x7f);
+    var pos = engine.getValue(group, 'playposition');
+    if (!DJ202.slices[DJ202.activePad] || DJ202.slices[DJ202.activePad] < pos) {
+        DJ202.slices[DJ202.activePad] = pos;
+    }
+}
+
+DJ202.slicer = function (pad, value) {
+    if (!value) {
+        return
+    }
+    midi.sendShortMsg(0x94, DJ202.activePad, 0);
+    engine.setValue('[Channel1]', 'playposition', DJ202.slices[pad]);
+    DJ202.activePad = pad;
+    midi.sendShortMsg(0x94, DJ202.activePad, 0x7f);
+    return
+}
 
 DJ202.autoShowDecks = function (value, group, control) {
     var any_loaded = engine.getValue('[Channel3]', 'track_loaded')
@@ -990,9 +1022,10 @@ DJ202.HotcueButton = function () {
 DJ202.HotcueButton.prototype = Object.create(components.HotcueButton.prototype);
 
 DJ202.HotcueButton.prototype.unshift = function () {
-    this.inKey = 'hotcue_' + this.number + '_activate';
+    //this.inKey = 'hotcue_' + this.number + '_activate';
     this.input = function (channel, control, value, status, group) {
-        components.HotcueButton.prototype.input.apply(this, arguments);
+        //components.HotcueButton.prototype.input.apply(this, arguments);
+        DJ202.slicer(this.number, value);
     }
 }
 
