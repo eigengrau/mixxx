@@ -40,6 +40,7 @@
         // These cannot be in the prototype; they must be unique to each instance.
         this.isShifted = false;
         this.connections = [];
+        this.isConnected = false;
 
         if (options !== undefined && typeof options.key === 'string') {
             this.inKey = options.key;
@@ -124,6 +125,7 @@
                 undefined !== this.output &&
                 typeof this.output === 'function') {
                 this.connections[0] = engine.makeConnection(this.group, this.outKey, this.output);
+                this.isConnected = true;
             }
         },
         disconnect: function () {
@@ -132,6 +134,7 @@
                     conn.disconnect();
                 });
             }
+            this.isConnected = false;
         },
         trigger: function() {
             if (this.connections[0] !== undefined) {
